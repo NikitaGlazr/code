@@ -1,0 +1,817 @@
+
+namespace Demka_test
+{
+    /// <summary>
+    /// Логика взаимодействия для MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+           
+        }
+
+        private void btnLogin_Click(object sender, RoutedEventArgs e)
+        {
+            string login = loginText.Text;
+            string password = passwordText.Password;
+
+            var context = Helper.GetContext();
+
+            try
+            {
+                var user = context.Users.SingleOrDefault(u => u.login == login && u.password == password);
+
+                if (user != null)
+                {
+                    var role = context.TypeRole.SingleOrDefault(r => r.idTypeRole == user.idTypeRole);
+                    if (role != null)
+                    {
+                        MessageBox.Show($"Добро пожаловать, {user.fio}! Ваша роль: {role.typeRole1}");
+
+                        var specialistWindow = new specialistWindowOrder(user.fio, role.typeRole1);
+                        specialistWindow.Show();
+                        this.Close();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Ошибка определения роли пользователя.");
+                    }
+                }
+                else
+                {
+                    // ToolTip toolTip = new ToolTip();
+                    // toolTip.Content = "Неверный логин или пароль!";
+                    // loginText.ToolTip = toolTip;
+
+                    MessageBox.Show("Неверный логин или пароль!");
+                    // MessageBox.Show("Повторить попытку?", "Ошибка", MessageBoxButton.YesNo);
+                    // MessageBox.Show("Продолжить?", "Ошибка", MessageBoxButton.OKCancel);
+                }
+            }
+            finally
+            {
+               
+            }
+
+
+
+
+        }
+    }
+}
+
+
+__Объявление пространства имен
+Copy
+namespace Demka_test
+namespace Demka_test: Объявляет пространство имен Demka_test, в котором определены классы и методы. Это помогает организовать код и избежать конфликтов имен.
+Объявление класса MainWindow
+Copy
+public partial class MainWindow : Window
+public partial class MainWindow: Объявляет публичный частичный класс MainWindow, который наследуется от класса Window. Частичные классы позволяют разделять определение класса на несколько файлов.
+Конструктор класса MainWindow
+Copy
+public MainWindow()
+{
+    InitializeComponent();
+}
+InitializeComponent(): Этот метод инициализирует компоненты интерфейса, определенные в XAML-файле, связанном с этим классом.
+Обработчик события нажатия кнопки входа
+Copy
+private void btnLogin_Click(object sender, RoutedEventArgs e)
+btnLogin_Click: Это обработчик события, который вызывается при нажатии кнопки входа (btnLogin). Он принимает два параметра: sender (объект, вызвавший событие) и e (аргументы события).
+Получение введенных данных
+Copy
+string login = loginText.Text;
+string password = passwordText.Password;
+loginText.Text: Получает текст, введенный в поле логина.
+passwordText.Password: Получает пароль, введенный в поле пароля.
+Получение контекста данных
+Copy
+var context = Helper.GetContext();
+Helper.GetContext(): Вызывает метод GetContext из класса Helper, который возвращает контекст данных. Этот контекст используется для взаимодействия с базой данных.
+Проверка учетных данных
+Copy
+var user = context.Users.SingleOrDefault(u => u.login == login && u.password == password);
+context.Users.SingleOrDefault: Ищет пользователя в базе данных, у которого логин и пароль совпадают с введенными. Если такой пользователь найден, он сохраняется в переменной user.
+Проверка роли пользователя
+Copy
+var role = context.TypeRole.SingleOrDefault(r => r.idTypeRole == user.idTypeRole);
+context.TypeRole.SingleOrDefault: Ищет роль пользователя в базе данных по идентификатору роли, сохраненному в объекте user.
+Обработка успешного входа
+Copy
+MessageBox.Show($"Добро пожаловать, {user.fio}! Ваша роль: {role.typeRole1}");
+var specialistWindow = new specialistWindowOrder(user.fio, role.typeRole1);
+specialistWindow.Show();
+this.Close();
+MessageBox.Show: Показывает сообщение с приветствием и ролью пользователя.
+new specialistWindowOrder: Создает новое окно для специалиста с передачей ФИО пользователя и его роли.
+specialistWindow.Show(): Отображает новое окно.
+this.Close(): Закрывает текущее окно входа.
+Обработка ошибок
+Copy
+MessageBox.Show("Неверный логин или пароль!");
+MessageBox.Show: Показывает сообщение об ошибке, если логин или пароль неверны.
+Блок finally
+Copy
+finally
+{
+
+}
+finally: Этот блок выполняется в любом случае, независимо от того, произошло ли исключение или нет. В данном случае он пустой и не выполняет никаких действий.
+
+
+_____________________________________________________________________________________________
+
+
+namespace Demka_test.Pages
+{
+    /// <summary>
+    /// Логика взаимодействия для specialistWindowOrder.xaml
+    /// </summary>
+    public partial class specialistWindowOrder : Window
+    {
+        public string UserName { get; set; }
+        public string UserRole { get; set; }
+        private List<Requests> _allRequests;
+
+        public specialistWindowOrder(string userName, string userRole)
+        {
+            InitializeComponent();
+            UserName = userName;
+            UserRole = userRole;
+            LoadData();
+        }
+        private void LoadData()
+        {
+            if (UserRole == "Менеджер" || UserRole == "Специалист" || UserRole == "Оператор")
+            {
+                btnAddRequest.Visibility = Visibility.Visible;
+                btnDeleteRequest.Visibility = Visibility.Visible;
+                btnEditRequest.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                btnDeleteRequest.Visibility = Visibility.Hidden;
+                btnEditRequest.Visibility = Visibility.Hidden;
+            }
+
+            var context = Helper.GetContext();
+
+            var requests = context.Requests.Include(r => r.climateTechTypes).Include(r => r.requestStatus).Include(r => r.Users).ToList();
+
+            _allRequests = requests;
+            OrderListView.ItemsSource = requests;
+        }
+
+
+
+        private void tbSerach_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                var textBox = sender as TextBox;
+                if (textBox == null)
+                {
+                    return;
+                }
+                else
+                {
+                    string searchText = textBox.Text.ToLower();
+                    var filteredList = _allRequests.Where(r =>
+                        r.isRequest.ToString().Contains(searchText) ||
+                        r.climateTechModel.ToLower().Contains(searchText) ||
+                        r.problemDescryption.ToLower().Contains(searchText) ||
+                        r.startDate.ToString().Contains(searchText) ||
+                        (r.idRequestStatus == 1 && "В процессе ремонта".ToLower().Contains(searchText)) ||
+                        (r.idRequestStatus == 2 && "Готова к выдаче".ToLower().Contains(searchText)) ||
+                        (r.idRequestStatus == 3 && "Новая заявка".ToLower().Contains(searchText))).ToList();
+
+                    OrderListView.ItemsSource = filteredList;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine($"Ошибка: {ex.Message}");
+            }
+        }
+
+        private void cmdSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmdSort.SelectedItem == null)
+            {
+                return;
+            }
+            else
+            {
+                var selectSort = (cmdSort.SelectedItem as ComboBoxItem)?.Content.ToString();
+                var filteredRequests = FilterRequests();
+
+                if (selectSort == "Сортировать по возрастанию") 
+                {
+                    filteredRequests = filteredRequests.OrderBy(r => r.isRequest).ToList();
+                } else if (selectSort == "Сортировать по убыванию") 
+                {
+                    filteredRequests = filteredRequests.OrderByDescending(r => r.isRequest).ToList();
+                }
+
+                OrderListView.ItemsSource = filteredRequests;
+            }
+        }
+
+        private void cmdFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmdFilter.SelectedItem == null)
+            {
+                return;
+            }
+            else 
+            {
+                var filteredRequests = FilterRequests();
+                OrderListView.ItemsSource = filteredRequests;
+            }
+
+        }
+
+        private List<Requests> FilterRequests()
+        {
+            var selectedFilter = (cmdFilter.SelectedItem as ComboBoxItem)?.Content.ToString();
+            var filteredRequests = _allRequests;
+
+            if (selectedFilter == "Кондиционер")
+            {
+                filteredRequests = filteredRequests.Where(r => r.climateTechTypes.climateTechType == "Кондиционер").ToList();
+            }
+            else if (selectedFilter == "Увлажнитель воздуха")
+            {
+                filteredRequests = filteredRequests.Where(r => r.climateTechTypes.climateTechType == "Увлажнитель воздуха").ToList();
+            }
+            else if (selectedFilter == "Сушилка для рук")
+            {
+                filteredRequests = filteredRequests.Where(r => r.climateTechTypes.climateTechType == "Сушилка для рук").ToList();
+            }
+            else if (selectedFilter == "В процессе ремонта")
+            {
+                filteredRequests = filteredRequests.Where(r => r.requestStatus.requestStatus1 == "В процессе ремонта").ToList();
+            }
+            else if (selectedFilter == "Готова к выдаче")
+            {
+                filteredRequests = filteredRequests.Where(r => r.requestStatus.requestStatus1 == "Готова к выдаче").ToList();
+            }
+            else if (selectedFilter == "Новая заявка")
+            {
+                filteredRequests = filteredRequests.Where(r => r.requestStatus.requestStatus1 == "Новая заявка").ToList();
+            }
+
+            return filteredRequests;
+        }
+
+        //Добавить переход для обычного пользоваеля и спрятать некоторые элементы.
+        private void btnAddRequest_Click(object sender, RoutedEventArgs e)
+        {
+            if (OrderListView.SelectedItem is Requests selectedRequest)
+            {
+                AddAndEditAndDeleteRequestWindow editWindow = new AddAndEditAndDeleteRequestWindow(selectedRequest.isRequest);
+                editWindow.Show();
+                LoadData();
+            }
+
+        }
+
+        private void btnDeleteRequest_Click(object sender, RoutedEventArgs e)
+        {
+            try 
+            {
+                if (OrderListView.SelectedItems is Requests selectedRequest)
+                {
+                    MessageBoxResult result = MessageBox.Show($"Вы уверенны, что хотите удалить: №{selectedRequest.isRequest}?", "Подтвердить удаление", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.Yes) 
+                    { 
+                    
+                        var dbContext = Helper.GetContext();
+
+                        var requestToDelete = dbContext.Requests.FirstOrDefault(r => r.isRequest == selectedRequest.isRequest);
+
+                        if (requestToDelete != null) 
+                        {
+                            dbContext.Requests.Remove(requestToDelete);
+                            dbContext.SaveChanges();
+                            LoadData();
+                            MessageBox.Show("Заявка успешна удалена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        }
+                    }
+                }
+                else 
+                {
+                    MessageBox.Show("Пожалуйста, выберите заявку для удаления", "Предупреждение!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+            }
+            catch (Exception ex) 
+            {
+                MessageBox.Show($"Произошла ошибка при удалении заявки: {ex.Message}","Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+        }
+
+        //Добавить переход для обычного пользоваеля и спрятать некоторые элементы.
+        private void btnEditRequest_Click(object sender, RoutedEventArgs e)
+        {
+            if (OrderListView.SelectedItem is Requests selectedRequest)
+            {
+                AddAndEditAndDeleteRequestWindow editWindow = new AddAndEditAndDeleteRequestWindow(selectedRequest.isRequest, UserRole);
+                editWindow.Show();
+                LoadData();
+            }
+        }
+
+        private void btnExit_Click(object sender, RoutedEventArgs e)
+        { 
+            MainWindow mainWindow = new MainWindow(); // Создание нового экземпляра MainWindow
+            mainWindow.Show(); // Показать окно MainWindow
+            this.Close();
+        }
+
+    
+        private void OrderListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+
+            if (OrderListView.SelectedItem is Requests selectedRequest)
+            {
+                AddAndEditAndDeleteRequestWindow editWindow = new AddAndEditAndDeleteRequestWindow(selectedRequest.isRequest, UserRole);
+                editWindow.Show();
+                LoadData();
+            }
+        }
+
+        private void OrderListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+        
+        }
+
+        private void btnStaticWindow_Click(object sender, RoutedEventArgs e)
+        {
+            StaticsWindow staticsWindow = new StaticsWindow(); // Создание нового экземпляра MainWindow
+            staticsWindow.Show(); // Показать окно MainWindow
+            this.Close();
+        }
+    }
+}
+
+Свойства класса
+Copy
+public string UserName { get; set; }
+public string UserRole { get; set; }
+private List<Requests> _allRequests;
+UserName и UserRole: Публичные свойства для хранения имени пользователя и его роли.
+_allRequests: Приватное поле для хранения списка всех заявок.
+Конструктор класса
+Copy
+public specialistWindowOrder(string userName, string userRole)
+{
+    InitializeComponent();
+    UserName = userName;
+    UserRole = userRole;
+    LoadData();
+}
+InitializeComponent(): Инициализирует компоненты интерфейса, определенные в XAML-файле.
+LoadData(): Метод для загрузки данных, вызывается при создании окна.
+Метод загрузки данных
+Copy
+private void LoadData()
+LoadData(): Загружает данные заявок и настраивает видимость кнопок в зависимости от роли пользователя.
+Управление видимостью кнопок
+Copy
+if (UserRole == "Менеджер" || UserRole == "Специалист" || UserRole == "Оператор")
+{
+    btnAddRequest.Visibility = Visibility.Visible;
+    btnDeleteRequest.Visibility = Visibility.Visible;
+    btnEditRequest.Visibility = Visibility.Visible;
+}
+else
+{
+    btnDeleteRequest.Visibility = Visibility.Hidden;
+    btnEditRequest.Visibility = Visibility.Hidden;
+}
+Visibility: Устанавливает видимость кнопок в зависимости от роли пользователя.
+Загрузка данных из базы
+Copy
+var context = Helper.GetContext();
+var requests = context.Requests.Include(r => r.climateTechTypes).Include(r => r.requestStatus).Include(r => r.Users).ToList();
+_allRequests = requests;
+OrderListView.ItemsSource = requests;
+Helper.GetContext(): Получает контекст данных для взаимодействия с базой данных.
+Include: Загружает связанные данные для заявок.
+OrderListView.ItemsSource: Устанавливает источник данных для элемента управления OrderListView.
+Поиск по тексту
+Copy
+private void tbSerach_TextChanged(object sender, TextChangedEventArgs e)
+tbSerach_TextChanged: Обработчик события изменения текста в поле поиска. Фильтрует заявки по введенному тексту.
+Сортировка заявок
+Copy
+private void cmdSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
+cmdSort_SelectionChanged: Обработчик события изменения выбора в элементе управления сортировки. Сортирует заявки по выбранному критерию.
+Фильтрация заявок
+Copy
+private void cmdFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+cmdFilter_SelectionChanged: Обработчик события изменения выбора в элементе управления фильтрации. Фильтрует заявки по выбранному критерию.
+Метод фильтрации заявок
+Copy
+private List<Requests> FilterRequests()
+FilterRequests(): Возвращает отфильтрованный список заявок в зависимости от выбранного фильтра.
+Добавление, редактирование и удаление заявок
+Copy
+private void btnAddRequest_Click(object sender, RoutedEventArgs e)
+private void btnDeleteRequest_Click(object sender, RoutedEventArgs e)
+private void btnEditRequest_Click(object sender, RoutedEventArgs e)
+btnAddRequest_Click: Обработчик события нажатия кнопки добавления заявки.
+btnDeleteRequest_Click: Обработчик события нажатия кнопки удаления заявки.
+btnEditRequest_Click: Обработчик события нажатия кнопки редактирования заявки.
+Выход из окна
+Copy
+private void btnExit_Click(object sender, RoutedEventArgs e)
+btnExit_Click: Обработчик события нажатия кнопки выхода. Открывает главное окно и закрывает текущее.
+Двойной клик по элементу списка
+Copy
+private void OrderListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+OrderListView_MouseDoubleClick: Обработчик события двойного клика по элементу списка. Открывает окно редактирования выбранной заявки.
+Открытие окна статистики
+Copy
+private void btnStaticWindow_Click(object sender, RoutedEventArgs e)
+btnStaticWindow_Click: Обработчик события нажатия кнопки для открытия окна статистики.
+
+
+_________________________________________________________________________________________________
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+
+namespace Demka_test.Pages
+{
+    /// <summary>
+    /// Логика взаимодействия для AddAndEditAndDeleteRequestWindow.xaml
+    /// </summary>
+    public partial class AddAndEditAndDeleteRequestWindow : Window
+    {
+        private Entities dbContext;
+        private Requests currentRequest;
+        private string UserRole;
+
+        public AddAndEditAndDeleteRequestWindow(int idRequest = 0, string userRole = "")
+        {
+            InitializeComponent();
+            dbContext = new Entities();
+            UserRole = userRole;
+
+            SetElementVisibility();
+
+            LoadComboBoxes();
+            if (idRequest > 0)
+            {
+                LoadRequestData(idRequest);
+            }
+        }
+
+        private void LoadComboBoxes()
+        {
+            ClimateTechTypeComboBox.ItemsSource = dbContext.climateTechTypes.ToList();
+            ClimateTechTypeComboBox.DisplayMemberPath = "climateTechType";
+
+            CustomerComboBox.ItemsSource = dbContext.Users.Where(u => u.idTypeRole == 4).ToList();
+            CustomerComboBox.DisplayMemberPath = "fio";
+
+            MasterComboBox.ItemsSource = dbContext.Users.Where(u => u.idTypeRole == 2).ToList();
+            MasterComboBox.DisplayMemberPath = "fio";
+
+
+            RequestStatusComboBox.ItemsSource = dbContext.requestStatus.ToList();
+            RequestStatusComboBox.DisplayMemberPath = "requestStatus1";
+
+        }
+
+        private void LoadRequestData(int idRequest)
+        {
+            currentRequest = dbContext.Requests.Find(idRequest);
+            if (currentRequest != null)
+            {
+                RequestNumberTextBox.Text = currentRequest.isRequest.ToString();
+                StartDatePicker.SelectedDate = currentRequest.startDate;
+                ClimateTechTypeComboBox.SelectedItem = dbContext.climateTechTypes.FirstOrDefault(t => t.idClimateTechType == currentRequest.idclimateTechType);
+                ClimateTechModelTextBox.Text = currentRequest.climateTechModel.ToString();
+                ProblemDescriptionTextBox.Text = currentRequest.problemDescryption.ToString();
+
+                CompletionDatePicker.SelectedDate = currentRequest.completionDate;
+
+                RepairPartsTextBox.Text = currentRequest.repairParts?.ToString();
+
+                if (currentRequest.idUser.HasValue)
+                {
+                    CustomerComboBox.SelectedItem = dbContext.Users.FirstOrDefault(u => u.idUser == currentRequest.idUser);
+                }
+
+                if (currentRequest.idMaster.HasValue)
+                {
+                    MasterComboBox.SelectedItem = dbContext.Users
+                        .FirstOrDefault(u => u.idUser == currentRequest.idMaster);
+                }
+                if (currentRequest.idRequestStatus.HasValue)
+                {
+                    RequestStatusComboBox.SelectedItem = dbContext.requestStatus
+                        .FirstOrDefault(s => s.idRequestStatus == currentRequest.idRequestStatus);
+                }
+            }
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (currentRequest == null)
+                {
+                    currentRequest = new Requests();
+                    dbContext.Requests.Add(currentRequest);
+                }
+
+                currentRequest.startDate = StartDatePicker.SelectedDate;
+                currentRequest.climateTechModel = ClimateTechModelTextBox.Text;
+                currentRequest.problemDescryption = ProblemDescriptionTextBox.Text;
+
+                // Добавьте сохранение новых полей
+                currentRequest.completionDate = CompletionDatePicker.SelectedDate;
+                currentRequest.repairParts = RepairPartsTextBox.Text;
+
+                var selectedTechType = ClimateTechTypeComboBox.SelectedItem as climateTechTypes;
+                currentRequest.idclimateTechType = selectedTechType?.idClimateTechType;
+
+                var selectedCustomer = CustomerComboBox.SelectedItem as Users;
+                currentRequest.idUser = selectedCustomer?.idUser;
+
+                var selectedMaster = MasterComboBox.SelectedItem as Users;
+                currentRequest.idMaster = selectedMaster?.idUser;
+
+                var selectedStatus = RequestStatusComboBox.SelectedItem as requestStatus;
+                currentRequest.idRequestStatus = selectedStatus?.idRequestStatus;
+
+                dbContext.SaveChanges();
+                MessageBox.Show("Данные успешно сохранены!");
+                this.Close();
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка", MessageBoxButton.YesNo);
+            }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+
+        private void SetElementVisibility()
+        {
+            if (UserRole != "Менеджер" && UserRole != "Специалист" && UserRole != "Оператор")
+            {
+                MasterComboBox.Visibility = Visibility.Collapsed;
+                CustomerComboBox.Visibility = Visibility.Collapsed;
+                RepairPartsTextBox.Visibility = Visibility.Collapsed;
+                RequestStatusComboBox.Visibility = Visibility.Collapsed;
+                CompletionDatePicker.Visibility = Visibility.Collapsed;
+
+                MasterLabel.Visibility = Visibility.Collapsed; 
+                CustomerLabel.Visibility = Visibility.Collapsed; 
+                RepairPartsLabel.Visibility = Visibility.Collapsed;
+                RequestStatusLabel.Visibility = Visibility.Collapsed;
+                CompletionDatePickerLabel.Visibility = Visibility.Collapsed;
+            }
+
+        }
+    }
+}
+
+
+Члены класса:
+
+Copy
+private Entities dbContext;
+private Requests currentRequest;
+private string UserRole;
+private Entities dbContext;: Объявляет приватное поле dbContext типа Entities, которое, вероятно, используется для взаимодействия с базой данных.
+private Requests currentRequest;: Объявляет приватное поле currentRequest типа Requests, которое хранит текущий запрос.
+private string UserRole;: Объявляет приватное поле UserRole типа string, которое хранит роль пользователя.
+Конструктор класса:
+
+Copy
+public AddAndEditAndDeleteRequestWindow(int idRequest = 0, string userRole = "")
+{
+    InitializeComponent();
+    dbContext = new Entities();
+    UserRole = userRole;
+
+    SetElementVisibility();
+
+    LoadComboBoxes();
+    if (idRequest > 0)
+    {
+        LoadRequestData(idRequest);
+    }
+}
+public AddAndEditAndDeleteRequestWindow(int idRequest = 0, string userRole = ""): Конструктор класса, который принимает два параметра: idRequest (идентификатор запроса) и userRole (роль пользователя). Оба параметра имеют значения по умолчанию.
+InitializeComponent();: Инициализирует компоненты окна.
+dbContext = new Entities();: Создает новый экземпляр Entities для взаимодействия с базой данных.
+UserRole = userRole;: Устанавливает значение поля UserRole.
+SetElementVisibility();: Вызывает метод для установки видимости элементов интерфейса.
+LoadComboBoxes();: Вызывает метод для загрузки данных в выпадающие списки.
+if (idRequest > 0) { LoadRequestData(idRequest); }: Если idRequest больше 0, вызывает метод для загрузки данных запроса.
+Метод LoadComboBoxes:
+
+Copy
+private void LoadComboBoxes()
+{
+    ClimateTechTypeComboBox.ItemsSource = dbContext.climateTechTypes.ToList();
+    ClimateTechTypeComboBox.DisplayMemberPath = "climateTechType";
+
+    CustomerComboBox.ItemsSource = dbContext.Users.Where(u => u.idTypeRole == 4).ToList();
+    CustomerComboBox.DisplayMemberPath = "fio";
+
+    MasterComboBox.ItemsSource = dbContext.Users.Where(u => u.idTypeRole == 2).ToList();
+    MasterComboBox.DisplayMemberPath = "fio";
+
+    RequestStatusComboBox.ItemsSource = dbContext.requestStatus.ToList();
+    RequestStatusComboBox.DisplayMemberPath = "requestStatus1";
+}
+Загружает данные в выпадающие списки (ComboBox) из базы данных.
+Устанавливает свойство ItemsSource для каждого ComboBox, чтобы отобразить список элементов.
+Устанавливает свойство DisplayMemberPath, чтобы задать, какое свойство объекта будет отображаться в ComboBox.
+Метод LoadRequestData:
+
+Copy
+private void LoadRequestData(int idRequest)
+{
+    currentRequest = dbContext.Requests.Find(idRequest);
+    if (currentRequest != null)
+    {
+        RequestNumberTextBox.Text = currentRequest.isRequest.ToString();
+        StartDatePicker.SelectedDate = currentRequest.startDate;
+        ClimateTechTypeComboBox.SelectedItem = dbContext.climateTechTypes.FirstOrDefault(t => t.idClimateTechType == currentRequest.idclimateTechType);
+        ClimateTechModelTextBox.Text = currentRequest.climateTechModel.ToString();
+        ProblemDescriptionTextBox.Text = currentRequest.problemDescryption.ToString();
+
+        CompletionDatePicker.SelectedDate = currentRequest.completionDate;
+
+        RepairPartsTextBox.Text = currentRequest.repairParts?.ToString();
+
+        if (currentRequest.idUser.HasValue)
+        {
+            CustomerComboBox.SelectedItem = dbContext.Users.FirstOrDefault(u => u.idUser == currentRequest.idUser);
+        }
+
+        if (currentRequest.idMaster.HasValue)
+        {
+            MasterComboBox.SelectedItem = dbContext.Users
+                .FirstOrDefault(u => u.idUser == currentRequest.idMaster);
+        }
+        if (currentRequest.idRequestStatus.HasValue)
+        {
+            RequestStatusComboBox.SelectedItem = dbContext.requestStatus
+                .FirstOrDefault(s => s.idRequestStatus == currentRequest.idRequestStatus);
+        }
+    }
+}
+Загружает данные запроса по его идентификатору и заполняет поля интерфейса этими данными.
+Метод SaveButton_Click:
+
+Copy
+private void SaveButton_Click(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        if (currentRequest == null)
+        {
+            currentRequest = new Requests();
+            dbContext.Requests.Add(currentRequest);
+        }
+
+        currentRequest.startDate = StartDatePicker.SelectedDate;
+        currentRequest.climateTechModel = ClimateTechModelTextBox.Text;
+        currentRequest.problemDescryption = ProblemDescriptionTextBox.Text;
+
+        currentRequest.completionDate = CompletionDatePicker.SelectedDate;
+        currentRequest.repairParts = RepairPartsTextBox.Text;
+
+        var selectedTechType = ClimateTechTypeComboBox.SelectedItem as climateTechTypes;
+        currentRequest.idclimateTechType = selectedTechType?.idClimateTechType;
+
+        var selectedCustomer = CustomerComboBox.SelectedItem as Users;
+        currentRequest.idUser = selectedCustomer?.idUser;
+
+        var selectedMaster = MasterComboBox.SelectedItem as Users;
+        currentRequest.idMaster = selectedMaster?.idUser;
+
+        var selectedStatus = RequestStatusComboBox.SelectedItem as requestStatus;
+        currentRequest.idRequestStatus = selectedStatus?.idRequestStatus;
+
+        dbContext.SaveChanges();
+        MessageBox.Show("Данные успешно сохранены!");
+        this.Close();
+
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка", MessageBoxButton.YesNo);
+    }
+}
+Обработчик события нажатия кнопки "Сохранить".
+Сохраняет данные из полей интерфейса в объект currentRequest и затем в базу данных.
+Отображает сообщение об успешном сохранении или об ошибке.
+Метод CancelButton_Click:
+
+Copy
+private void CancelButton_Click(object sender, RoutedEventArgs e)
+{
+}
+Пустой обработчик события нажатия кнопки "Отмена".
+Метод SetElementVisibility:
+
+Copy
+private void SetElementVisibility()
+{
+    if (UserRole != "Менеджер" && UserRole != "Специалист" && UserRole != "Оператор")
+    {
+        MasterComboBox.Visibility = Visibility.Collapsed;
+        CustomerComboBox.Visibility = Visibility.Collapsed;
+        RepairPartsTextBox.Visibility = Visibility.Collapsed;
+        RequestStatusComboBox.Visibility = Visibility.Collapsed;
+        CompletionDatePicker.Visibility = Visibility.Collapsed;
+
+        MasterLabel.Visibility = Visibility.Collapsed;
+        CustomerLabel.Visibility = Visibility.Collapsed;
+        RepairPartsLabel.Visibility = Visibility.Collapsed;
+        RequestStatusLabel.Visibility = Visibility.Collapsed;
+        CompletionDatePickerLabel.Visibility = Visibility.Collapsed;
+    }
+}
+Устанавливает видимость элементов интерфейса в зависимости от роли пользователя.
+Если роль пользователя не является "Менеджер", "Специалист" или "Оператор", скрывает определенные элементы интерфейса.
+
+
+________________________________________________________________________________________________
+
+
+
+namespace Demka_test.Pages
+{
+    /// <summary>
+    /// Логика взаимодействия для StaticsWindow.xaml
+    /// </summary>
+    public partial class StaticsWindow : Window
+    {
+        private List<Requests> requests;
+
+        public StaticsWindow()
+        {
+            InitializeComponent();
+            LoadStatistics();
+        }
+
+        private void LoadStatistics()
+        {
+            var context = Helper.GetContext();
+
+            // Количество выполненных заявок
+            var completedRequestsCount = context.Requests.Count(r => r.idRequestStatus == 2);
+            CompletedRequestsCount.Text = completedRequestsCount.ToString();
+
+            // Среднее время выполнения заявки
+            var completedRequests = context.Requests.Where(r => r.idRequestStatus == 2 && r.completionDate.HasValue && r.startDate.HasValue).ToList();
+
+            double averageCompletionTime = completedRequests.Average(r => (r.completionDate.Value - r.startDate.Value).TotalHours);
+
+            AverageCompletionTime.Text = averageCompletionTime.ToString();
+
+            // Статистика по типам неисправностей
+            var problemStatistics = context.Requests.GroupBy(r => r.problemDescryption).Select(g => new { Problem = g.Key, Count = g.Count() }).ToList();
+
+            ProblemStatistics.ItemsSource = problemStatistics;
+            ProblemStatistics.DisplayMemberPath = "Problem";
+        }
+    }
+}
+
+
